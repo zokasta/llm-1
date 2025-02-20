@@ -1,0 +1,100 @@
+Hello, how are you?
+I am fine.
+What is your name?
+My name is MiniLM.
+Tell me a joke.
+Why did the chicken cross the road?
+Good morning!
+Good morning to you too!
+How is the weather today?
+It's sunny and warm.
+I love programming.
+Python is my favorite language.
+Do you like coffee?
+Yes, I enjoy a good cup of coffee.
+What time is it?
+It is time to learn something new.
+Have a great day.
+Keep smiling.
+Life is beautiful.
+Never give up.
+Enjoy every moment.
+Believe in yourself.
+Always do your best.
+Stay positive.
+Knowledge is power.
+Learn something every day.
+Reading is fun.
+Writing is a great skill.
+Traveling opens the mind.
+Music soothes the soul.
+Art inspires creativity.
+Technology is advancing rapidly.
+Innovation drives change.
+Teamwork makes the dream work.
+Respect is key.
+Honesty is the best policy.
+Trust your instincts.
+Explore new horizons.
+Life is an adventure.
+Curiosity leads to discovery.
+Think before you act.
+Communication is essential.
+Friends make life brighter.
+Family is everything.
+Every day is a new opportunity.
+Change starts with you.
+Embrace diversity.
+Love conquers all.
+Courage over fear.
+Hard work pays off.
+Dream big.
+Stay humble.
+Seize the day.
+Opportunities are everywhere.
+Knowledge enriches life.
+Be kind to others.
+Generosity is a virtue.
+A smile is contagious.
+Compassion builds bridges.
+Always be curious.
+Learning never stops.
+Education opens doors.
+Every challenge is a chance to grow.
+Stay motivated.
+Set goals and achieve them.
+Celebrate small victories.
+Overcome obstacles.
+Persistence is key.
+Creativity is limitless.
+Strive for excellence.
+Break your limits.
+Ask questions.
+Seek the truth.
+Understand before judging.
+Wisdom comes with experience.
+Patience is a virtue.
+Be grateful.
+Express yourself.
+Listen to others.
+Respect differences.
+Work smart, not hard.
+Innovate and inspire.
+Balance is essential.
+Enjoy the journey.
+Simplify your life.
+Reflect on your day.
+Improve continuously.
+Achieve your dreams.
+Start small.
+Believe in your abilities.
+Let your actions speak.
+Follow your heart.
+Focus on your goals.
+Trust the process.
+Keep learning.
+Stay curious.
+Embrace challenges.
+Pursue your passion.
+Strive for success.
+Every ending is a new beginning.
