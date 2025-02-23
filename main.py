@@ -8,6 +8,7 @@ from transformers import BertTokenizer
 with open("data.txt", "r", encoding="utf-8") as f:
     lines = [line.strip() for line in f if line.strip()]
 
+
 tokenizer = BertTokenizer.from_pretrained("bert-base-uncased")
 
 
@@ -35,6 +36,7 @@ class TinyTransformer(nn.Module):
         self.fc = nn.Linear(d_model, vocab_size)
 
     def forward(self, x):
+
         x = self.embedding(x).permute(1, 0, 2)
         attn_output, _ = self.attn(x, x, x)
         output = self.fc(attn_output).permute(1, 0, 2)
@@ -44,10 +46,14 @@ class TinyTransformer(nn.Module):
 if __name__ == "__main__":
     dataset = SimpleTextDataset(lines)
 
-    dataloader = DataLoader(dataset, batch_size=4, shuffle=True, num_workers=4)
+    dataloader = DataLoader(dataset, batch_size=4, shuffle=True)
 
     vocab_size = tokenizer.vocab_size
     model = TinyTransformer(vocab_size)
+
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    print(f"Using device: {device}")
+    model.to(device)
 
     criterion = nn.CrossEntropyLoss()
     optimizer = optim.Adam(model.parameters(), lr=0.001)
@@ -56,6 +62,8 @@ if __name__ == "__main__":
     for epoch in range(num_epochs):
         epoch_loss = 0.0
         for inp, tgt in dataloader:
+
+            inp, tgt = inp.to(device), tgt.to(device)
             optimizer.zero_grad()
             output = model(inp)
             loss = criterion(output.reshape(-1, vocab_size), tgt.view(-1))
