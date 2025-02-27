@@ -7,7 +7,7 @@ from main import TinyTransformer
 tokenizer = BertTokenizer.from_pretrained("bert-base-uncased")
 vocab_size = tokenizer.vocab_size
 model = TinyTransformer(vocab_size)
-model.load_state_dict(torch.load("tiny_llm_plain_text_1000.pth"))
+model.load_state_dict(torch.load("tiny_llm_plain_text_500.pth"))
 model.eval()
 
 
