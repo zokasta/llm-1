@@ -1,4 +1,5 @@
 import time
+import os
 import torch
 import torch.nn as nn
 import torch.optim as optim
@@ -8,7 +9,7 @@ from transformers import BertTokenizer
 
 torch.backends.cudnn.benchmark = True
 
-with open("data.txt", "r", encoding="utf-8") as f:
+with open("raw.txt", "r", encoding="utf-8") as f:
     lines = [line.strip() for line in f if line.strip()]
 
 print(f"Total data lines: {len(lines)}")
@@ -24,8 +25,13 @@ class SimpleTextDataset(Dataset):
 
     def __getitem__(self, idx):
         text = self.data[idx]
+
         tokens = tokenizer(
-            text, padding="max_length", max_length=32, return_tensors="pt"
+            text,
+            padding="max_length",
+            truncation=True,
+            max_length=32,
+            return_tensors="pt",
         )
         tokens_tensor = tokens["input_ids"].squeeze(0)
         return tokens_tensor, tokens_tensor
@@ -59,7 +65,7 @@ class TinyTransformer(nn.Module):
         return logits
 
 
-if __name__ == "__main__":
+def main():
     dataset = SimpleTextDataset(lines)
     dataloader = DataLoader(dataset, batch_size=4, shuffle=True, pin_memory=True)
 
@@ -75,7 +81,7 @@ if __name__ == "__main__":
     scaler = torch.cuda.amp.GradScaler() if use_amp else None
 
     num_epochs = 100
-    loss_threshold = 1e-3
+    loss_threshold = 1e-4
     total_train_start = time.time()
     total_epoch_time = 0.0
     total_tokens_processed = 0
@@ -95,17 +101,16 @@ if __name__ == "__main__":
             if use_amp:
                 with torch.cuda.amp.autocast():
                     output = model(inp)
-                    loss = criterion(output.reshape(-1, vocab_size), tgt.view(-1))
+                    loss = criterion(output.view(-1, vocab_size), tgt.view(-1))
                 scaler.scale(loss).backward()
                 scaler.step(optimizer)
                 scaler.update()
             else:
                 output = model(inp)
-                loss = criterion(output.reshape(-1, vocab_size), tgt.view(-1))
+                loss = criterion(output.view(-1, vocab_size), tgt.view(-1))
                 loss.backward()
                 optimizer.step()
-            batch_time = time.time() - batch_start
-            batch_times.append(batch_time)
+            batch_times.append(time.time() - batch_start)
             epoch_loss += loss.item()
         epoch_time = time.time() - epoch_start
         total_epoch_time += epoch_time
@@ -125,4 +130,12 @@ if __name__ == "__main__":
     print(f"Total training time: {total_training_time:.2f} sec")
     print(f"Average epoch time: {avg_epoch_time:.2f} sec")
     print(f"Total tokens processed: {total_tokens_processed}")
-    torch.save(model.state_dict(), "tiny_llm_plain_text_500.pth")
+
+    if not os.path.exists("mini_llm_model"):
+        os.makedirs("mini_llm_model")
+    torch.save(model.state_dict(), "mini_llm_model/pytorch_model.bin")
+    tokenizer.save_pretrained("mini_llm_model")
+
+
+if __name__ == "__main__":
+    main()
