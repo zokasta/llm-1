@@ -1,54 +1,64 @@
 import time
 import os
-import glob
-import pandas as pd
+import json
 import torch
 import torch.nn as nn
 import torch.optim as optim
 from torch.utils.data import Dataset, DataLoader
 from transformers import BertTokenizer
 
+
 torch.backends.cudnn.benchmark = True
 
-# Load dataset from the "data" folder
-def load_dataset_from_folder(folder):
-    files = glob.glob(os.path.join(folder, "*.csv"))  # Fixed extension to .csv
-    all_texts = []
-    for file in files:
-        df = pd.read_csv(file)
-        all_texts.extend(df["text"].tolist())  # Ensure "text" column exists
-    return all_texts
 
-# Load dataset from the data folder
-data_folder = "data"
-lines = load_dataset_from_folder(data_folder)
-print(f"Total data samples: {len(lines)}")
+def load_dialogue_pairs(file_path):
+    with open(file_path, "r", encoding="utf-8") as f:
+        data = json.load(f)
+    pairs = []
+    for entry in data:
+        if "user" in entry and "ai" in entry:
+            pairs.append(entry)
+    return pairs
 
-# Initialize tokenizer
+
+data_file = os.path.join("data", "data.json")
+dialogue_pairs = load_dialogue_pairs(data_file)
+print(f"Total dialogue pairs: {len(dialogue_pairs)}")
+
+
 tokenizer = BertTokenizer.from_pretrained("bert-base-uncased")
+tokenizer.add_special_tokens(
+    {"additional_special_tokens": ["[USER]", "[ASSISTANT]", "[SEP]"]}
+)
 
-# Dataset class
-class SimpleTextDataset(Dataset):
-    def __init__(self, samples):
-        self.data = samples
+
+class DialogueDataset(Dataset):
+    def __init__(self, pairs, tokenizer, max_length=32):
+        self.pairs = pairs
+        self.tokenizer = tokenizer
+        self.max_length = max_length
 
     def __len__(self):
-        return len(self.data)
+        return len(self.pairs)
 
     def __getitem__(self, idx):
-        text = self.data[idx]
-        tokens = tokenizer(
+        pair = self.pairs[idx]
+        user_text = pair["user"].strip()
+        ai_text = pair["ai"].strip()
+
+        text = f"[USER] {user_text} [SEP] [ASSISTANT] {ai_text} [SEP]"
+        tokens = self.tokenizer(
             text,
             padding="max_length",
             truncation=True,
-            max_length=32,
+            max_length=self.max_length,
             return_tensors="pt",
         )
         tokens_tensor = tokens["input_ids"].squeeze(0)
-        labels = tokens_tensor.clone()  # Ensure labels are properly tokenized
+        labels = tokens_tensor.clone()
         return tokens_tensor, labels
 
-# Tiny Transformer model
+
 class TinyTransformer(nn.Module):
     def __init__(self, vocab_size, d_model=128, seq_length=32, nhead=4):
         super(TinyTransformer, self).__init__()
@@ -63,20 +73,21 @@ class TinyTransformer(nn.Module):
         self.fc = nn.Linear(d_model, vocab_size)
 
     def forward(self, x):
-        x = self.embedding(x)  # (batch, seq_length, d_model)
+        x = self.embedding(x)
         x = x + self.pos_embedding[:, : x.size(1), :]
         attn_output, _ = self.attn(x, x, x)
         x = self.norm1(x + attn_output)
         ffn_output = self.ffn(x)
         x = self.norm2(x + ffn_output)
-        logits = self.fc(x)  # (batch, seq_length, vocab_size)
+        logits = self.fc(x)
         return logits
 
+
 def main():
-    dataset = SimpleTextDataset(lines)
+    dataset = DialogueDataset(dialogue_pairs, tokenizer, max_length=32)
     dataloader = DataLoader(dataset, batch_size=4, shuffle=True, pin_memory=True)
 
-    vocab_size = tokenizer.vocab_size
+    vocab_size = len(tokenizer)
     model = TinyTransformer(vocab_size)
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     print(f"Using device: {device}")
@@ -85,10 +96,10 @@ def main():
     criterion = nn.CrossEntropyLoss()
     optimizer = optim.Adam(model.parameters(), lr=0.001)
     use_amp = device.type == "cuda"
-    scaler = torch.cuda.amp.GradScaler() if use_amp else None
+    scaler = torch.amp.GradScaler() if use_amp else None
 
-    num_epochs = 100
-    loss_threshold = 1e-4
+    num_epochs = 10000
+    loss_threshold = 1e-7
     total_train_start = time.time()
     total_epoch_time = 0.0
     total_tokens_processed = 0
@@ -98,23 +109,25 @@ def main():
         epoch_loss = 0.0
         batch_times = []
         model.train()
-        
+
         for inp, tgt in dataloader:
             batch_start = time.time()
             optimizer.zero_grad()
-            inp, tgt = inp.to(device, non_blocking=True), tgt.to(device, non_blocking=True)
+            inp, tgt = inp.to(device, non_blocking=True), tgt.to(
+                device, non_blocking=True
+            )
             total_tokens_processed += inp.numel()
 
             if use_amp:
-                with torch.cuda.amp.autocast():
+                with torch.amp.autocast():
                     output = model(inp)
-                    loss = criterion(output.reshape(-1, vocab_size), tgt.reshape(-1))  # Fixed shape issue
+                    loss = criterion(output.view(-1, vocab_size), tgt.view(-1))
                 scaler.scale(loss).backward()
                 scaler.step(optimizer)
                 scaler.update()
             else:
                 output = model(inp)
-                loss = criterion(output.reshape(-1, vocab_size), tgt.reshape(-1))  # Fixed shape issue
+                loss = criterion(output.view(-1, vocab_size), tgt.view(-1))
                 loss.backward()
                 optimizer.step()
 
@@ -131,7 +144,9 @@ def main():
         )
 
         if avg_loss < loss_threshold:
-            print(f"Avg loss {avg_loss:.6f} is below threshold {loss_threshold}, stopping early.")
+            print(
+                f"Avg loss {avg_loss:.6f} is below threshold {loss_threshold}, stopping early."
+            )
             break
 
     total_training_time = time.time() - total_train_start
@@ -145,6 +160,7 @@ def main():
         os.makedirs("mini_llm_model")
     torch.save(model.state_dict(), "mini_llm_model/pytorch_model.bin")
     tokenizer.save_pretrained("mini_llm_model")
+
 
 if __name__ == "__main__":
     main()

@@ -39,8 +39,29 @@
       "rstrip": false,
       "single_word": false,
       "special": true
+    },
+    "30522": {
+      "content": "[USER]",
+      "lstrip": false,
+      "normalized": false,
+      "rstrip": false,
+      "single_word": false,
+      "special": true
+    },
+    "30523": {
+      "content": "[ASSISTANT]",
+      "lstrip": false,
+      "normalized": false,
+      "rstrip": false,
+      "single_word": false,
+      "special": true
     }
   },
+  "additional_special_tokens": [
+    "[USER]",
+    "[ASSISTANT]",
+    "[SEP]"
+  ],
   "clean_up_tokenization_spaces": true,
   "cls_token": "[CLS]",
   "do_basic_tokenize": true,
